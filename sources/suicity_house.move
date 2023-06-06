@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-module suicitynft::suicity_houses
+// Main module for SuiCityNFT Houses
+module suicitynft::suicity_house
 {
     use std::string::{String, utf8};
     use std::vector;
@@ -28,8 +29,9 @@ module suicitynft::suicity_houses
     const E_PASS_MINT_NOT_AVAILABLE: u64 = 200;
     const E_PUBLIC_MINT_NOT_AVAILABLE: u64 = 201;
     const E_MORE_THAN_AVAILABLE: u64 = 300;
-    const E_NOT_ENOUGH_COIN: u64 = 301;
     const E_NOT_A_PASSPORT_OWNER: u64 = 400;
+    const E_NOT_ENOUGH_COIN: u64 = 500;
+
 
     struct SuiCityCap has key { id: UID }
 
@@ -108,9 +110,9 @@ module suicitynft::suicity_houses
         value: String
     }
 
-    struct SUICITY_HOUSES has drop {}
+    struct SUICITY_HOUSE has drop {}
 
-    fun init(otw: SUICITY_HOUSES, ctx: &mut TxContext) {
+    fun init(otw: SUICITY_HOUSE, ctx: &mut TxContext) {
 
         let keys = vector[
             utf8(b"name"),
@@ -213,8 +215,8 @@ module suicitynft::suicity_houses
         house
     }
 
-    /// mint free HOUSE for passport holders.
-    /// verify using ecdsa_k1 signature
+    /// Mint free HOUSE for passport holders.
+    /// Verify holders using ecdsa_k1 signature
     public entry fun passport_owner_claim (
         data: &mut SuiCityData,
         amount: u64,
@@ -316,9 +318,9 @@ module suicitynft::suicity_houses
 
         let houseLookupResults = vector::empty<HouseLookupResult>();
 
-        let i = 0;
+        let i = 1;
         
-        while (i < data.current_supply) {
+        while (i <= data.current_supply) {
 
             let house_id = *table::borrow(&data.houseRegistry, i);
             let res = HouseLookupResult {
@@ -352,16 +354,16 @@ module suicitynft::suicity_houses
 
         let profile: &mut Profile = dof::borrow_mut(&mut house.id, 0);  //Only Profile object has Name: 0
 
-        let added_key = utf8(name);
-        let added_value = utf8(value);
+        let key = utf8(name);
+        let value = utf8(value);
 
         event::emit(AddedToPrifile {
             profile_id: object::uid_to_inner(&profile.id),
-            key: *&added_key,
-            value: *&added_value
+            key: *&key,
+            value: *&value
         });
 
-        df::add (&mut profile.id, utf8(name) , utf8(value))
+        df::add (&mut profile.id, key , value)
     }
 
     // Remove existing df from profile
@@ -373,7 +375,7 @@ module suicitynft::suicity_houses
 
         event::emit(RemovedFromProfile {
             profile_id: object::uid_to_inner(&profile.id),
-            key: *&removed_key,
+            key: removed_key,
             value: removed_value
         })
     }
@@ -393,6 +395,10 @@ module suicitynft::suicity_houses
 
     public entry fun stop_pass_mint(_: &SuiCityCap, data: &mut SuiCityData) {
         data.pass_mint_allowed = false
+    }
+
+    public entry fun change_house_price(_: &SuiCityCap, data: &mut SuiCityData, new_price: u64) {
+        data.price = new_price
     }
 
     // === HOUSE utilities ===
@@ -438,8 +444,8 @@ module suicitynft::suicity_houses
 
         let ctx = tx_context::dummy();
 
-        let citizen = @0xA;
-        let creator = @0xB;
+        let citizenA = @0xA;
+        let creator = @0xC;
 
         // Create SuiCity
         let suiCity = suicity_map::createSuiCity(&mut ctx);
@@ -465,7 +471,7 @@ module suicitynft::suicity_houses
             assert!(house.token_id == 1, 1);
             assert!(data.current_supply == 1, 2);
 
-            transfer::transfer(house, citizen);
+            transfer::transfer(house, citizenA);
             transfer::transfer(data, creator);
             transfer::public_transfer(suiCity, creator)
         }
@@ -482,8 +488,8 @@ module suicitynft::suicity_houses
 
         let ctx = tx_context::dummy();
 
-        let citizen = @0xA;
-        let creator = @0xB;
+        let citizenA = @0xA;
+        let creator = @0xC;
 
         // Create SuiCity
         let suiCity = suicity_map::createSuiCity(&mut ctx);
@@ -549,7 +555,7 @@ module suicitynft::suicity_houses
         let j = 0;
         while (j < amount) {
             let house: House = vector::pop_back(&mut houses);
-            transfer::transfer(house, citizen);
+            transfer::transfer(house, citizenA);
             j = j + 1;
         };
 
@@ -562,7 +568,9 @@ module suicitynft::suicity_houses
 
     #[test]
     public fun test_utilities(){
+
         use sui::test_scenario;
+        use std::debug;
         use sui::dynamic_field as df;
         use sui::dynamic_object_field as dof;
         use suicitynft::suicity_map::{Self, SuiCity};
@@ -593,7 +601,6 @@ module suicitynft::suicity_houses
 
         // 2nd transaction: emulate init suicity_map
         test_scenario::next_tx(scenario, creator);
-        let scenario = &mut scenario_val;
 
         {
             suiCity = suicity_map::createSuiCity(test_scenario::ctx(scenario));
@@ -660,7 +667,8 @@ module suicitynft::suicity_houses
 
             test_scenario::return_to_sender(scenario, house);
         };
-        // 6th transaction: some tests
+
+        // 7th transaction: some tests
         test_scenario::next_tx(scenario, citizenA);
 
         {
@@ -712,6 +720,14 @@ module suicitynft::suicity_houses
             
             let new_config = vector[2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
 
+            let lookup_token_ids = vector[1];
+            let lookup = get_houses_by_token_ids(&data, lookup_token_ids);
+
+            let all_lookup = get_all_houses(&data);
+            debug::print(&lookup);
+            debug::print(&all_lookup);
+
+
             // Tests
             assert!(&mut house.config == &mut new_config, 2);
             assert!(profile.nick_name == utf8(b"aaa"), 3);
@@ -723,6 +739,7 @@ module suicitynft::suicity_houses
             transfer::transfer(data, creator);
             transfer::public_transfer(suiCity, creator);
         };
+
         test_scenario::end(scenario_val);
     }
 }

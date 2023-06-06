@@ -758,7 +758,7 @@ public fun test_get_coordinate () {
         let ctx = tx_context::dummy();
 
 
-        //create SuiCity
+        // Create SuiCity
         let suiCity: SuiCity = createSuiCity(&mut ctx);
 
         let coordinate_1 = get_coordinate(&suiCity, 1);
@@ -768,7 +768,7 @@ public fun test_get_coordinate () {
         let coordinate_2309 = get_coordinate(&suiCity, 2309);
         let coordinate_2468 = get_coordinate(&suiCity, 2468);
 
-        // check with js
+        // to Check with js
         assert!(coordinate_1.x == 6 && coordinate_1.y == 2 , 0);
         assert!(coordinate_1.zone == utf8(b"Cypress Hill"), 1);
 
@@ -794,7 +794,6 @@ public fun test_get_coordinate () {
         debug::print(&coordinate_1127);
         debug::print(&coordinate_2309);
         debug::print(&coordinate_2468);
-
 
         let dummy_address = @0xCAFE;
         transfer::transfer(suiCity, dummy_address);
