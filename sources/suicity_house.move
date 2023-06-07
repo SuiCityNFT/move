@@ -20,19 +20,26 @@ module suicitynft::suicity_house
     use sui::ecdsa_k1;
     use suicitynft::suicity_map::{Self, SuiCity, CoordinateData};
 
+    // === Constants ===
     const TOTAL_SUPPLY: u64 = 2468;
     const PUBLIC_SUPPLY: u64 = 1174; // 2468 - (1234 OP PASSPORTS + 60 SUI PASSPORTS)
 
-    /// Error Codes
+    // === Error Codes ===
+    // Supply controller
     const E_TOTAL_SUPPLY_REACHED: u64 = 100;
     const E_PUBLIC_SUPPLY_REACHED: u64 = 101;
+    const E_MORE_THAN_AVAILABLE: u64 = 102;
+
+    // Admin controller
     const E_PASS_MINT_NOT_AVAILABLE: u64 = 200;
     const E_PUBLIC_MINT_NOT_AVAILABLE: u64 = 201;
-    const E_MORE_THAN_AVAILABLE: u64 = 300;
+
+    // Verify controller
     const E_NOT_A_PASSPORT_OWNER: u64 = 400;
     const E_NOT_ENOUGH_COIN: u64 = 500;
 
 
+    // === Types ===
     struct SuiCityCap has key { id: UID }
 
     // The HOUSE
@@ -45,14 +52,14 @@ module suicitynft::suicity_house
         config: vector<u64>
     }
 
-    /// Profile object
+    // Profile object
     struct Profile has key, store { 
         id: UID,
         nick_name: String,
         image_url: String
     }
 
-    /// Interior object
+    // Interior object
     struct Interior has key, store { id: UID }
 
     // SuiCity Data (Shared)
@@ -73,45 +80,47 @@ module suicitynft::suicity_house
     }
 
     // === Events ===
-    /// Event. Emitted when a furniture added.
+    // Event. Emitted when a furniture added.
     struct FurnitureAdded<phantom T> has copy, drop {
         interior_id: ID,
         furniture_id: ID
     }
 
-    /// Event. Emitted when a furniture is taken off.
+    // Event. Emitted when a furniture is taken off.
     struct FurnitureRemoved<phantom T> has copy, drop {
         interior_id: ID,
         furniture_id: ID,
     }
 
-    /// Event. Emitted when a Citizen claimed a HOUSE.
+    // Event. Emitted when a Citizen claimed a HOUSE.
     struct HouseClaimed has copy, drop {
         id: ID,
         citizen: address
     }
 
-    /// Event. Emitted when Profile basic info edited
+    // Event. Emitted when Profile basic info edited
     struct ProfileEdited has copy, drop {
         profile_id: ID,
     }
 
-    /// Event. Emitted when a new field added to profile
+    // Event. Emitted when a new field added to profile
     struct AddedToPrifile has copy, drop {
         profile_id: ID,
         key: String,
         value: String
     }
 
-    /// Event. Emitted when an exidting field removed form profile
+    // Event. Emitted when an exidting field removed form profile
     struct RemovedFromProfile has copy, drop {
         profile_id: ID,
         key: String,
         value: String
     }
 
+    // One time witness
     struct SUICITY_HOUSE has drop {}
 
+    // === Functions ===
     fun init(otw: SUICITY_HOUSE, ctx: &mut TxContext) {
 
         let keys = vector[
@@ -128,14 +137,14 @@ module suicitynft::suicity_house
         ];
 
         let values = vector[
-            utf8(b"No. #{token_id}"),
+            utf8(b"No. #{token_id} @({x}, {y}) {zone}"),
             utf8(b"https://app.suicitynft.fun/houses/{id}"),
             utf8(b"https://app.suicitynft.fun/api/images/v2/{id}"),
             utf8(b"{x}"),
             utf8(b"{y}"),
             utf8(b"{token_id}"),
             utf8(b"{config}"),
-            utf8(b"A City that lives on-chain!"),
+            utf8(b"An on-chain City that lives on Sui network!"),
             utf8(b"https://suicitynft.fun"),
             utf8(b"SuiCityNFT")
         ];
@@ -166,7 +175,6 @@ module suicitynft::suicity_house
         })
     }
 
-    // === Functions ===
     fun mint(
         data: &mut SuiCityData,
         config: vector<u64>,
@@ -215,8 +223,8 @@ module suicitynft::suicity_house
         house
     }
 
-    /// Mint free HOUSE for passport holders.
-    /// Verify holders using ecdsa_k1 signature
+    // Mint free HOUSE for passport holders.
+    // Verify holders using ecdsa_k1 signature
     public entry fun passport_owner_claim (
         data: &mut SuiCityData,
         amount: u64,
@@ -250,6 +258,7 @@ module suicitynft::suicity_house
         }
     }
 
+    // Public mint
     public entry fun public_claim (
         data: &mut SuiCityData,
         payment: Coin<SUI>,
@@ -288,7 +297,7 @@ module suicitynft::suicity_house
         }
     }
 
-    /// Fetch selected house object ids
+    // Fetch selected house object ids
     public entry fun get_houses_by_token_ids( data: &SuiCityData, lookup_token_ids: vector<u64>): vector<HouseLookupResult> {
 
         let houseLookupResults = vector::empty<HouseLookupResult>();
@@ -313,7 +322,7 @@ module suicitynft::suicity_house
         return houseLookupResults
     }
 
-    /// Fetch all houses object Ids
+    // Fetch all houses object Ids
     public entry fun get_all_houses (data: &SuiCityData): vector<HouseLookupResult> {
 
         let houseLookupResults = vector::empty<HouseLookupResult>();
@@ -380,6 +389,32 @@ module suicitynft::suicity_house
         })
     }
 
+    // === HOUSE utilities ===
+    // Edit house config
+    public entry fun edit_config(house: &mut House, new_config: vector<u64>) {
+        house.config = new_config
+    }
+
+    // Every furniture which has <key + store> could be attached Interior.
+    public entry fun add_furniture<T: key + store> (house: &mut House, furniture: T)  {
+        let interior: &mut Interior = dof::borrow_mut(&mut house.id, 1); // Only Interior object has Name: 1
+        event::emit(FurnitureAdded<T> {
+            interior_id: object::id(interior),
+            furniture_id: object::id(&furniture)
+        });
+        dof::add(&mut interior.id, object::id(&furniture), furniture)
+    }
+
+    // Remove furniture from Interior.
+    public entry fun remove_furniture<T: key + store> (house: &mut House, furniture_id: ID, ctx: &TxContext) {
+        let interior: &mut Interior = dof::borrow_mut(&mut house.id, 1); // Only Interior object has Name: 1
+        event::emit(FurnitureRemoved<T> {
+            interior_id: object::id(interior),
+            furniture_id: *&furniture_id
+        });
+        transfer::public_transfer(dof::remove<ID, T>(&mut interior.id, furniture_id), tx_context::sender(ctx));
+    }
+
     // === Admin control panel ===
     public entry fun start_paid_mint(_: &SuiCityCap, data: &mut SuiCityData) {
         data.paid_mint_allowed = true
@@ -399,32 +434,6 @@ module suicitynft::suicity_house
 
     public entry fun change_house_price(_: &SuiCityCap, data: &mut SuiCityData, new_price: u64) {
         data.price = new_price
-    }
-
-    // === HOUSE utilities ===
-    /// Edit house config
-    public entry fun edit_config(house: &mut House, new_config: vector<u64>) {
-        house.config = new_config
-    }
-
-    /// Every furniture which has <key + store> could be attached Interior.
-    public entry fun add_furniture<T: key + store> (house: &mut House, furniture: T)  {
-        let interior: &mut Interior = dof::borrow_mut(&mut house.id, 1); // Only Interior object has Name: 1
-        event::emit(FurnitureAdded<T> {
-            interior_id: object::id(interior),
-            furniture_id: object::id(&furniture)
-        });
-        dof::add(&mut interior.id, object::id(&furniture), furniture)
-    }
-
-    /// Remove furniture from Interior.
-    public entry fun remove_furniture<T: key + store> (house: &mut House, furniture_id: ID, ctx: &TxContext) {
-        let interior: &mut Interior = dof::borrow_mut(&mut house.id, 1); // Only Interior object has Name: 1
-        event::emit(FurnitureRemoved<T> {
-            interior_id: object::id(interior),
-            furniture_id: *&furniture_id
-        });
-        transfer::public_transfer(dof::remove<ID, T>(&mut interior.id, furniture_id), tx_context::sender(ctx));
     }
 
     public entry fun withdraw (_: &SuiCityCap, data: &mut SuiCityData, ctx: &mut TxContext) {
@@ -713,13 +722,8 @@ module suicitynft::suicity_house
 
         {
             let house = test_scenario::take_from_sender<House>(scenario);
-            let profile: &mut Profile = dof::borrow_mut(&mut house.id, 0);
 
-
-            let df_1 = *df::borrow_mut(&mut profile.id, utf8(b"ccc"));
-            
-            let new_config = vector[2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
-
+            // Test LookUp
             let lookup_token_ids = vector[1];
             let lookup = get_houses_by_token_ids(&data, lookup_token_ids);
 
@@ -727,7 +731,12 @@ module suicitynft::suicity_house
             debug::print(&lookup);
             debug::print(&all_lookup);
 
-
+            // Test Profile and Config
+            let profile: &mut Profile = dof::borrow_mut(&mut house.id, 0);
+            let df_1 = *df::borrow_mut(&mut profile.id, utf8(b"ccc"));
+            
+            let new_config = vector[2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
+            
             // Tests
             assert!(&mut house.config == &mut new_config, 2);
             assert!(profile.nick_name == utf8(b"aaa"), 3);
