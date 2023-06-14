@@ -1,6 +1,56 @@
 // SPDX-License-Identifier: MIT
-
 // Main module for SuiCityNFT Houses
+
+/*
+                    @@@@@                                                                          
+               (@@@@@@@@@@@&@                                                                      
+               @   @@@@@@@@@@@@@@                                                                  
+               @       @@@@@@@@@@@@@@*                                                             
+               @           ,@@@@@@@@@@@@@@                                                         
+               @                @@@@@@@@@@@@&@                                                     
+               @      @@           @@@@@@@@@@@@@@@                                                 
+               @      @@@@@@       @@,  &@@@@@@@@@@                                                
+               @      @@&@@@@@@@(  @@,      @@@@@@@   @&@@@                                        
+               @        &@@@@@@@@@@@@,      @@@@@@@@@@@@@@@@@@@                                    
+               @.           &@@@@@@@@,      @@@@@@   @@@@@@@@@@@@@@                                
+                   @#            @@@@,      @@@@@@      @@@@@@@@@@@@@@@                            
+                  @&@@@@&          @@,      @@@@@@      @@    @@@@@@@@@                            
+               @%@@@@@@@@@@@@      @@,      @@@@@@      @@      @@@@@@@                            
+               @     @@@@@@@@      @@,      @@@@@@      @@      @@@@@@@                            
+               @         @@@@      @@,      @@@@@@      @@      @@@@@@@                            
+                @.                 @@,      @@@@@@      @@      @@@@@@@                            
+               @&@@@@.             @@,      @@@@@@      @@      @@@@@@@                            
+               @    %@@@@&         @@,      @@@@@@      @@      @@@@@@@                            
+               @        .@@@@@.    @@,      @@@@@@      @@      @@@@@@@                            
+               @             @@@@@ &@,        @@@@      @@      @@@@@@@                            
+               @                 @@@@@,                 @@      @@@@@@@                            
+               @      @@@.         @@#@@@@@             @@      @@@@@@@                            
+               @      @@@@@@%&     @@,    @@@@@         @@      @@@@@@@                            
+               @      @@@@@@%   /@ @@,      @ @@@@@     @@      @@@@@@@                            
+               @      @@@@@@%        ,      @     @@@@@*@@      @@@@@@@                            
+               @      @@@@@@%        ,      @         /@@@@@    @@@@@&                             
+               @      @@@@@@%        ,      @@@.           @@@@@@@@@@@@@@                          
+               @      @@@@@@%        ,      @@@@@@@            &&@@@@@@@@@@@@                      
+               @      @@@@@@@@&@     ,      @@@@@@@             @  @@@@@@@@@@@@                    
+               @      @@@@@@@@@@@@@@ ,      @@@@@@@       @,    @      .@@@@@@@    @@@             
+               @         .@@@@@@@@@@@,      @@@@@@@       @@@@@&@       @@@@@@@@@@@@@@@@@@         
+                 @,           .@@@@@@,      @@@@@@@       @@@@@@@       @@@@@@  &@@@@@@@@@@        
+                     @@            @@,      @@@@@@@       @@@@@@@       @@@@@@      &@@@@@@        
+                         .@        @@,      @@@@@@@       @@@@@@@           @@      &@@@@@@        
+                              @    @@,      @@@@@@@       @@@@@@@  @,               &@@@@@@        
+                                  @& ,      @@@@@@@       @@@@@@@      @            &@@@@@@        
+                                      &@    @@@@@         @@@@@@@      @            &@@@@@@        
+                                           @@             @@@@@@@      @      @@@   &@@&@          
+                                                          @@@@@@@      @      @@@@@@@              
+                                                   @%     @@@@@@       @      @@@@@@@              
+                                                       #@ @@           @      @@@@@@@              
+                                                                       @      @@@@@@@              
+                                                                       @      @@@@@@@              
+                                                                       @      @@@@@@@              
+                                                                        *@    @@@@@%               
+                                                                             @@   
+*/
+
 module suicitynft::suicity_house
 {
     use std::string::{String, utf8};
@@ -8,7 +58,7 @@ module suicitynft::suicity_house
     use sui::sui::SUI;
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
-    use sui::display;
+    use sui::display::{Self, Display};
     use sui::event;
     use sui::object::{Self, ID, UID};
     use sui::package;
@@ -22,13 +72,12 @@ module suicitynft::suicity_house
 
     // === Constants ===
     const TOTAL_SUPPLY: u64 = 2468;
-    const PUBLIC_SUPPLY: u64 = 1174; // 2468 - (1234 OP PASSPORTS + 60 SUI PASSPORTS)
+    const PASSPORT_SUPPLY: u64 = 1294; // (1234 OP PASSPORTS + 60 SUI PASSPORTS)
 
     // === Error Codes ===
     // Supply controller
     const E_TOTAL_SUPPLY_REACHED: u64 = 100;
-    const E_PUBLIC_SUPPLY_REACHED: u64 = 101;
-    const E_MORE_THAN_AVAILABLE: u64 = 102;
+    const E_MORE_THAN_AVAILABLE: u64 = 101;
 
     // Admin controller
     const E_PASS_MINT_NOT_AVAILABLE: u64 = 200;
@@ -182,6 +231,9 @@ module suicitynft::suicity_house
         ctx: &mut TxContext): House
         {
 
+        // Should not happen 
+        assert! (data.current_supply < TOTAL_SUPPLY, E_TOTAL_SUPPLY_REACHED);
+
         let house_uid = object::new(ctx);
         let profile_uid = object::new(ctx);
         let interior_uid = object::new(ctx);
@@ -271,7 +323,7 @@ module suicitynft::suicity_house
         assert!(data.paid_mint_allowed == true, E_PUBLIC_MINT_NOT_AVAILABLE);
 
         let total_public_supply_after_mint = data.public_claimed + amount;
-        assert!(total_public_supply_after_mint <= PUBLIC_SUPPLY, E_MORE_THAN_AVAILABLE);
+        assert!(total_public_supply_after_mint <= TOTAL_SUPPLY - PASSPORT_SUPPLY, E_MORE_THAN_AVAILABLE);
 
         let total_price = amount * data.price;
         assert!(coin::value(&payment) >= total_price, E_NOT_ENOUGH_COIN);
@@ -436,13 +488,70 @@ module suicitynft::suicity_house
         data.price = new_price
     }
 
+    // For future updates
+    public entry fun edit_display<T: key>(display: &mut Display<T>, name: String, value: String) {
+        display::edit(display, name, value)
+    }
+
     public entry fun withdraw (_: &SuiCityCap, data: &mut SuiCityData, ctx: &mut TxContext) {
         let amount = balance::value(&data.balance);
         let profits = coin::take(&mut data.balance, amount, ctx);
         transfer::public_transfer(profits, tx_context::sender(ctx))
     }
 
-    // === TESTS ===
+    // public entry fun transfer_suiCity<T: key>(
+    //     suiCityCap: SuiCityCap,
+    //     package: Publisher,
+    //     upgradeCap: UpgradeCap,
+    //     display: Display<T>,
+    //     newOwner: address ) {
+    //     transfer::public_transfer(upgradeCap, newOwner);
+    //     transfer::public_transfer(package, newOwner);
+    //     transfer::public_transfer(display, newOwner);
+    //     transfer::transfer(suiCityCap, newOwner)
+    // }
+
+
+    // === UNIT TESTING ===
+
+    // Test only mint function, surpasses the { Profile } and { Interior } for saving gas
+    #[test_only]
+    fun test_mint(
+        data: &mut SuiCityData,
+        config: vector<u64>,
+        suiCity: &SuiCity,
+        ctx: &mut TxContext): House
+        {
+
+        // Should not happen 
+        assert! (data.current_supply < TOTAL_SUPPLY, E_TOTAL_SUPPLY_REACHED);
+
+        let house_uid = object::new(ctx);
+
+        let house_token_id = data.current_supply + 1;
+
+        let coordinateData: CoordinateData = suicity_map::get_coordinate(suiCity, house_token_id);
+
+        let x = suicity_map::get_x(coordinateData);
+        let y = suicity_map::get_y(coordinateData);
+        let zone = suicity_map::get_zone(coordinateData);
+
+        let house = House {
+            id: house_uid,
+            token_id: house_token_id,
+            x,
+            y,
+            zone,
+            config: config
+        };
+
+        data.current_supply = data.current_supply + 1;
+
+        table::add(&mut data.houseRegistry, house.token_id, object::id(&house));
+
+        house
+    }
+
     #[test]
     fun mint_and_test_token_1() {
 
@@ -572,6 +681,292 @@ module suicitynft::suicity_house
         
         transfer::transfer(data, creator);
         transfer::public_transfer(suiCity, creator)
+    }
+
+    #[test]
+    fun total_supply_test_1() {
+        use sui::test_scenario;
+        use suicitynft::suicity_map::{Self, SuiCity};
+        use std::debug;
+
+        // Create test addresses
+        let creator = @0xC;
+        let citizenA = @0xA;
+
+        let data: SuiCityData;
+        let suiCity: SuiCity;
+
+        // 1st transaction: emulate init suicity_house
+        let scenario_val = test_scenario::begin(creator);
+        let scenario = &mut scenario_val;
+
+        {
+            data = SuiCityData{
+                id: object::new(test_scenario::ctx(scenario)),
+                current_supply: 0,
+                public_claimed: 0,
+                pass_mint_allowed: true,
+                paid_mint_allowed: true,
+                price: 20000000000, // 20 SUI
+                balance: balance::zero(),
+                houseRegistry: table::new(test_scenario::ctx(scenario))
+            };
+        };
+
+        // 2nd transaction: emulate init suicity_map
+        test_scenario::next_tx(scenario, creator);
+
+        {
+            suiCity = suicity_map::createSuiCity(test_scenario::ctx(scenario));
+        };
+
+        // 3nd transaction: mint 2468
+        test_scenario::next_tx(scenario, citizenA);
+
+        {
+            let amount = 2468;
+
+            let i = 0;
+            while ( i < amount ) {
+                let config = vector[1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+                let house: House = test_mint(&mut data, config, &suiCity, test_scenario::ctx(scenario));
+                debug::print(&house.x);
+                debug::print(&house.y);
+                transfer::transfer(house, citizenA);
+                i = i + 1;
+            };
+        };
+
+        // 4th trarnsaction: Transfer undropable objects
+        test_scenario::next_tx(scenario, citizenA);
+
+        {
+            // For full coordinate test
+            // let all_lookup = get_all_houses(&data);
+            // debug::print(&all_lookup);
+
+            transfer::transfer(data, creator);
+            transfer::public_transfer(suiCity, creator)
+        };
+
+        test_scenario::end(scenario_val);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = E_TOTAL_SUPPLY_REACHED)]
+    fun total_supply_test_2() {
+        use sui::test_scenario;
+        use suicitynft::suicity_map::{Self, SuiCity};
+
+        // Create test addresses
+        let creator = @0xC;
+        let citizenA = @0xA;
+
+        let data: SuiCityData;
+        let suiCity: SuiCity;
+
+        // 1st transaction: emulate init suicity_house
+        let scenario_val = test_scenario::begin(creator);
+        let scenario = &mut scenario_val;
+
+        {
+            data = SuiCityData{
+                id: object::new(test_scenario::ctx(scenario)),
+                current_supply: 0,
+                public_claimed: 0,
+                pass_mint_allowed: true,
+                paid_mint_allowed: true,
+                price: 20000000000, // 20 SUI
+                balance: balance::zero(),
+                houseRegistry: table::new(test_scenario::ctx(scenario))
+            };
+        };
+
+        // 2nd transaction: emulate init suicity_map
+        test_scenario::next_tx(scenario, creator);
+
+        {
+            suiCity = suicity_map::createSuiCity(test_scenario::ctx(scenario));
+        };
+
+        // 3nd transaction: mint 2469 (should fail)
+        test_scenario::next_tx(scenario, citizenA);
+
+        {
+            let amount = 2469;
+
+            let i = 0;
+            while ( i < amount ) {
+                let config = vector[1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+                let house: House = test_mint(&mut data, config, &suiCity, test_scenario::ctx(scenario));
+                transfer::transfer(house, citizenA);
+                i = i + 1;
+            };
+        };
+
+        // 4th trarnsaction: Transfer undropable objects
+        test_scenario::next_tx(scenario, citizenA);
+
+        {
+            transfer::transfer(data, creator);
+            transfer::public_transfer(suiCity, creator)
+        };
+
+        test_scenario::end(scenario_val);
+    }
+
+    #[test]
+    fun public_supply_test_1() {
+
+        use sui::test_scenario;
+        use suicitynft::suicity_map::{Self, SuiCity};
+
+        // Create test addresses
+        let creator = @0xC;
+        let citizenA = @0xA;
+
+        let data: SuiCityData;
+        let suiCity: SuiCity;
+
+        // 1st transaction: emulate init suicity_house
+        let scenario_val = test_scenario::begin(creator);
+        let scenario = &mut scenario_val;
+
+        {
+            data = SuiCityData{
+                id: object::new(test_scenario::ctx(scenario)),
+                current_supply: 0,
+                public_claimed: 0,
+                pass_mint_allowed: true,
+                paid_mint_allowed: true,
+                price: 20000000000, // 20 SUI
+                balance: balance::zero(),
+                houseRegistry: table::new(test_scenario::ctx(scenario))
+            };
+        };
+
+        // 2nd transaction: emulate init suicity_map
+        test_scenario::next_tx(scenario, creator);
+
+        {
+            suiCity = suicity_map::createSuiCity(test_scenario::ctx(scenario));
+        };
+
+        // 3rd transaction: 1174 mint
+        test_scenario::next_tx(scenario, citizenA);
+
+        {
+            let amount = 1174;
+
+            let total_public_supply_after_mint = data.public_claimed + amount;
+            assert!(total_public_supply_after_mint <= TOTAL_SUPPLY - PASSPORT_SUPPLY, E_MORE_THAN_AVAILABLE);
+
+            let i = 0;
+            while ( i < amount ) {
+                let config = vector[1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+                let house: House = mint(&mut data, config, &suiCity, test_scenario::ctx(scenario));
+                transfer::transfer(house, citizenA);
+                data.public_claimed = data.public_claimed + 1;
+                i = i + 1;
+            };
+        };
+
+         // 4th trarnsaction: Transfer undropable objects
+        test_scenario::next_tx(scenario, citizenA);
+
+        {
+            transfer::transfer(data, creator);
+            transfer::public_transfer(suiCity, creator)
+        };
+
+        test_scenario::end(scenario_val);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = E_MORE_THAN_AVAILABLE)]
+    fun public_supply_test_2() {
+
+        use sui::test_scenario;
+        use suicitynft::suicity_map::{Self, SuiCity};
+
+        // Create test addresses
+        let creator = @0xC;
+        let citizenA = @0xA;
+
+        let data: SuiCityData;
+        let suiCity: SuiCity;
+
+        // 1st transaction: emulate init suicity_house
+        let scenario_val = test_scenario::begin(creator);
+        let scenario = &mut scenario_val;
+
+        {
+            data = SuiCityData{
+                id: object::new(test_scenario::ctx(scenario)),
+                current_supply: 0,
+                public_claimed: 0,
+                pass_mint_allowed: true,
+                paid_mint_allowed: true,
+                price: 20000000000, // 20 SUI
+                balance: balance::zero(),
+                houseRegistry: table::new(test_scenario::ctx(scenario))
+            };
+        };
+
+        // 2nd transaction: emulate init suicity_map
+        test_scenario::next_tx(scenario, creator);
+
+        {
+            suiCity = suicity_map::createSuiCity(test_scenario::ctx(scenario));
+        };
+
+        // 3rd transaction: 1174 mint
+        test_scenario::next_tx(scenario, citizenA);
+
+        {
+            let amount = 1173;
+
+            let total_public_supply_after_mint = data.public_claimed + amount;
+            assert!(total_public_supply_after_mint <= TOTAL_SUPPLY - PASSPORT_SUPPLY, E_MORE_THAN_AVAILABLE);
+
+            let i = 0;
+            while ( i < amount ) {
+                let config = vector[1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+                let house: House = mint(&mut data, config, &suiCity, test_scenario::ctx(scenario));
+                transfer::transfer(house, citizenA);
+                data.public_claimed = data.public_claimed + 1;
+                i = i + 1;
+            };
+        };
+
+        // 4th transaction: another mint (should fail)
+        test_scenario::next_tx(scenario, citizenA);
+
+        {
+            let amount = 2;
+
+            let total_public_supply_after_mint = data.public_claimed + amount;
+            assert!(total_public_supply_after_mint <= TOTAL_SUPPLY - PASSPORT_SUPPLY, E_MORE_THAN_AVAILABLE);
+
+            let i = 0;
+            while ( i < amount ) {
+                let config = vector[1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+                let house: House = mint(&mut data, config, &suiCity, test_scenario::ctx(scenario));
+                transfer::transfer(house, citizenA);
+                data.public_claimed = data.public_claimed + 1;
+                i = i + 1;
+            };
+        };
+
+         // 5th trarnsaction: Transfer undropable objects
+        test_scenario::next_tx(scenario, citizenA);
+
+        {
+            transfer::transfer(data, creator);
+            transfer::public_transfer(suiCity, creator)
+        };
+
+        test_scenario::end(scenario_val);
     }
 
 
