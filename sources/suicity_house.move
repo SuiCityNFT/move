@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Main module for SuiCityNFT Houses
+// Main module for SuiCityNFT HOUSES
 
 /*
                     @@@@@                                                                          
