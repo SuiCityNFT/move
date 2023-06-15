@@ -35,4 +35,6 @@ Temporary Items
 *.icloud
 
 build
+
+suicityAddresses.txt
 # End of https://www.toptal.com/developers/gitignore/api/macos
