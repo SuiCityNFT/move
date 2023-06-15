@@ -123,6 +123,7 @@ module suicitynft::suicity_house
         houseRegistry: Table<u64, ID> 
     }
 
+    // For veridied on-chain search
     struct HouseLookupResult has drop {
         token_id: u64,
         house_id: ID,
@@ -193,14 +194,14 @@ module suicitynft::suicity_house
             utf8(b"{y}"),
             utf8(b"{token_id}"),
             utf8(b"{config}"),
-            utf8(b"An on-chain City that lives on Sui network!"),
+            utf8(b"A fully on-chain city that lives on SuiNetwork. SuiCityNFT is a fun open-source NFT project that is constantly evolving by its citizens. So there is something new to explore every day in SuiCity!"),
             utf8(b"https://suicitynft.fun"),
             utf8(b"SuiCityNFT")
         ];
 
         let publisher = package::claim(otw, ctx);
         let display = display::new_with_fields<House>(
-            &publisher,keys, values, ctx
+            &publisher, keys, values, ctx
         );
 
         display::update_version(&mut display);
@@ -290,8 +291,8 @@ module suicitynft::suicity_house
 
         assert!(data.pass_mint_allowed == true, E_PASS_MINT_NOT_AVAILABLE);
 
-        let pass_owner_verified = ecdsa_k1::secp256k1_verify(&sig, &public_key, &msg, 0);
-        assert! (pass_owner_verified == true, E_NOT_A_PASSPORT_OWNER);
+        let is_pass_owner_verified = ecdsa_k1::secp256k1_verify(&sig, &public_key, &msg, 0);
+        assert! (is_pass_owner_verified == true, E_NOT_A_PASSPORT_OWNER);
 
         let citizen = tx_context::sender(ctx);
 
