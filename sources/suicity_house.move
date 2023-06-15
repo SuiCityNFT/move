@@ -219,7 +219,7 @@ module suicitynft::suicity_house
             public_claimed: 0,
             pass_mint_allowed: true,
             paid_mint_allowed: true,
-            price: 20000000000, // 20 SUI
+            price: 18000000000, // 18 SUI
             balance: balance::zero(),
             houseRegistry: table::new(ctx)
         })
@@ -576,7 +576,7 @@ module suicitynft::suicity_house
                 public_claimed: 0,
                 pass_mint_allowed: true,
                 paid_mint_allowed: true,
-                price: 20000000000, // 20 SUI
+                price: 18000000000, // 18 SUI
                 balance: balance::zero(),
                 houseRegistry: table::new(&mut ctx)
         };
@@ -620,7 +620,7 @@ module suicitynft::suicity_house
                 public_claimed: 0,
                 pass_mint_allowed: true,
                 paid_mint_allowed: true,
-                price: 20000000000, // 20 SUI
+                price: 18000000000, // 18 SUI
                 balance: balance::zero(),
                 houseRegistry: table::new(&mut ctx)
         };
@@ -654,12 +654,12 @@ module suicitynft::suicity_house
         let house_2 = vector::borrow(&houses, 1);
         let house_5 = vector::borrow(&houses, 4);
 
-        // Verified with js
+        // Verified with map
         assert!(house_2.x == 7 && house_2.y == 4, 0);
         assert!(house_2.token_id == 2, 1);
         assert!(house_2.config == vector[2, 2, 2, 2, 2, 2, 2, 2, 2, 2], 2);
 
-        // Verified with js
+        // Verified with map
         assert!(house_5.x == 18 && house_2.y == 4, 0);
         assert!(house_5.token_id == 5, 1);
         assert!(house_5.config == vector[5, 5, 5, 5, 5, 5, 5, 5, 5, 5], 2);
@@ -708,7 +708,7 @@ module suicitynft::suicity_house
                 public_claimed: 0,
                 pass_mint_allowed: true,
                 paid_mint_allowed: true,
-                price: 20000000000, // 20 SUI
+                price: 18000000000, // 18 SUI
                 balance: balance::zero(),
                 houseRegistry: table::new(test_scenario::ctx(scenario))
             };
@@ -735,13 +735,13 @@ module suicitynft::suicity_house
                 // Uncomment following to see the [ x, y ] of each HOUSE
                 // let c: vector<u64> = vector[house.x, house.y];
                 // debug::print(&c);
-                
+
                 transfer::transfer(house, citizenA);
                 i = i + 1;
             };
         };
 
-        // 4th trarnsaction: Transfer undropable objects
+        // 4th trarnsaction: Transfer undroppable objects
         test_scenario::next_tx(scenario, citizenA);
 
         {
@@ -776,7 +776,7 @@ module suicitynft::suicity_house
                 public_claimed: 0,
                 pass_mint_allowed: true,
                 paid_mint_allowed: true,
-                price: 20000000000, // 20 SUI
+                price: 18000000000, // 18 SUI
                 balance: balance::zero(),
                 houseRegistry: table::new(test_scenario::ctx(scenario))
             };
@@ -804,7 +804,7 @@ module suicitynft::suicity_house
             };
         };
 
-        // 4th trarnsaction: Transfer undropable objects
+        // 4th trarnsaction: Transfer undroppable objects
         test_scenario::next_tx(scenario, citizenA);
 
         {
@@ -839,7 +839,7 @@ module suicitynft::suicity_house
                 public_claimed: 0,
                 pass_mint_allowed: true,
                 paid_mint_allowed: true,
-                price: 20000000000, // 20 SUI
+                price: 18000000000, // 18 SUI
                 balance: balance::zero(),
                 houseRegistry: table::new(test_scenario::ctx(scenario))
             };
@@ -852,7 +852,7 @@ module suicitynft::suicity_house
             suiCity = suicity_map::createSuiCity(test_scenario::ctx(scenario));
         };
 
-        // 3rd transaction: 1174 mint
+        // 3rd transaction: 1174 mint (PUBLIC_SUPPLY = 2468 - 1294)
         test_scenario::next_tx(scenario, citizenA);
 
         {
@@ -871,7 +871,7 @@ module suicitynft::suicity_house
             };
         };
 
-         // 4th trarnsaction: Transfer undropable objects
+         // 4th trarnsaction: Transfer undroppable objects
         test_scenario::next_tx(scenario, citizenA);
 
         {
@@ -907,7 +907,7 @@ module suicitynft::suicity_house
                 public_claimed: 0,
                 pass_mint_allowed: true,
                 paid_mint_allowed: true,
-                price: 20000000000, // 20 SUI
+                price: 18000000000, // 18 SUI
                 balance: balance::zero(),
                 houseRegistry: table::new(test_scenario::ctx(scenario))
             };
@@ -997,7 +997,7 @@ module suicitynft::suicity_house
                 public_claimed: 0,
                 pass_mint_allowed: true,
                 paid_mint_allowed: true,
-                price: 20000000000, // 20 SUI
+                price: 18000000000, // 18 SUI
                 balance: balance::zero(),
                 houseRegistry: table::new(test_scenario::ctx(scenario))
             };
@@ -1032,7 +1032,7 @@ module suicitynft::suicity_house
             };
         };
 
-        // 4th trarnsaction: editt profile basic info
+        // 4th trarnsaction: edit profile basic info
         test_scenario::next_tx(scenario, citizenA);
 
         {
