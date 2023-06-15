@@ -731,8 +731,11 @@ module suicitynft::suicity_house
             while ( i < amount ) {
                 let config = vector[1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
                 let house: House = test_mint(&mut data, config, &suiCity, test_scenario::ctx(scenario));
-                debug::print(&house.x);
-                debug::print(&house.y);
+
+                // Uncomment following to see the [ x, y ] of each HOUSE
+                // let c: vector<u64> = vector[house.x, house.y];
+                // debug::print(&c);
+                
                 transfer::transfer(house, citizenA);
                 i = i + 1;
             };
@@ -742,10 +745,6 @@ module suicitynft::suicity_house
         test_scenario::next_tx(scenario, citizenA);
 
         {
-            // For full coordinate test
-            // let all_lookup = get_all_houses(&data);
-            // debug::print(&all_lookup);
-
             transfer::transfer(data, creator);
             transfer::public_transfer(suiCity, creator)
         };
